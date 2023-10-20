@@ -1,0 +1,20 @@
+version: "3"
+services:
+  app:
+    container_name: "jupyterlab_container"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jupyterlab_image
+    volumes:
+      - .:/home/code
+    mem_limit: 10g
+    cpus: 4.0
+    tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

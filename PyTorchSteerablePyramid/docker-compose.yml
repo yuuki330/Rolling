@@ -1,0 +1,20 @@
+version: "3"
+services:
+  work:
+    container_name: rolling_shutter_katsumata
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pytorch1.12.1-cuda11.3-cudnn8-devel
+    volumes:
+     - .:/home/work
+    mem_limit: 10g
+    cpus: 4
+    tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]

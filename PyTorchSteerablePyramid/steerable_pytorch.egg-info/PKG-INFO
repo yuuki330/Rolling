@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: steerable-pytorch
+Version: 0.1
+Summary: Complex Steerable Pyramids in PyTorch
+Home-page: https://github.com/tomrunia/PyTorchSteerablePyramid
+Author: Tom Runia
+Author-email: tomrunia@gmail.com
+License: MIT
+Description: Fast CPU/CUDA implementation of the Complex Steerable Pyramid in PyTorch.
+Platform: UNKNOWN

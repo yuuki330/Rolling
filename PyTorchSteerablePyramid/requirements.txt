@@ -1,0 +1,9 @@
+six
+numpy
+scipy == 1.1.0
+torch >= 0.4.0
+matplotlib
+pillow
+scikit-image
+opencv-python
+opencv-contrib-python
