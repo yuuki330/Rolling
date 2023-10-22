@@ -228,23 +228,23 @@ class VM_rolling:
 
                 # 逆向きに補完
                 reversed_signal = np.array(list(reversed(recovered_signal[band][start_idx:end_idx])))
-                print(len(reversed_signal))
                 plt.figure(figsize=[20, 5])
                 plt.plot(range(start_idx, end_idx), reversed_signal[start_idx:end_idx])
                 plt.savefig('./result/反転_'+str(band))
                 plt.close()
                 for i in range(N_gap, len(recovered_signal[band]), self.height+N_gap):
+                    if len(reversed_signal) < i+self.height+N_gap:
+                        break
                     ar_model = AutoReg(reversed_signal[i:i+self.height], lags=150)
                     ar_model = ar_model.fit()
                     pred = ar_model.forecast(N_gap)
                     reversed_signal[i+self.height:i+self.height+N_gap] = pred
                     if i == N_gap+stop_iter*(self.height+N_gap):
                         break
-                    print(i)
                     if(i%100==0):
                         time_present = time()
                         print(f'{band}_進捗: {i}/{len(recovered_signal[band])}, 経過時間: {time_present-time_start:.2f}秒')
-
+                recovered_signal[band][start_idx:end_idx] = list(reversed(reversed_signal[start_idx:end_idx]))
             ## グラフを保存
             for band in recovered_signal:
                 plt.figure(figsize=[20, 5])
