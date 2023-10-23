@@ -43,7 +43,8 @@ class VM_rolling:
     
     def plot_spectrogram(self, x, fs=2200):
         # 入力波形をリサンプリング
-        y = resampy.resample(x, sr_orig=61920, sr_new=2200)
+        y = resampy.resample(x, sr_orig=61920, sr_new=2000)
+        print(f'max')
         plt.figure()
         plt.specgram(y, Fs=fs, cmap=plt.get_cmap('jet'))
         plt.xlabel('Time (sec)')
@@ -55,24 +56,24 @@ class VM_rolling:
         
         del_fs = 1032
         fft_y = fft(x)
-        plt.figure()
-        plt.plot(fft_y)
-        plt.xlabel('Frequency (Hz)')
-        plt.xlim(0, 12000)
-        plt.savefig('./result/fft_x')
-        plt.close()
+        # plt.figure()
+        # plt.plot(fft_y)
+        # plt.xlabel('Frequency (Hz)')
+        # plt.xlim(0, 12000)
+        # plt.savefig('./result/fft_x')
+        # plt.close()
 
         # print(np.where(fft_y>0.5))
         # print(np.where(fft_y<-0.5))
         frequency_index = [i for i in range(0, 40000, del_fs)]
         # fft_y[np.where(fft_y>0.1)] = 0
         # fft_y[np.where(fft_y<-0.1)] = 0
-        plt.figure()
-        plt.plot(fft_y)
-        plt.xlabel('Frequency (Hz)')
-        plt.xlim(0, 12000)
-        plt.savefig('./result/fft_x_del')
-        plt.close()
+        # plt.figure()
+        # plt.plot(fft_y)
+        # plt.xlabel('Frequency (Hz)')
+        # plt.xlim(0, 12000)
+        # plt.savefig('./result/fft_x_del')
+        # plt.close()
 
         # y = ifft(fft_y)
         # plt.figure()
@@ -211,28 +212,16 @@ class VM_rolling:
             plt.close()
         
         for j in range(1):
-            # 自己相関による補完(10/18以前)
+            # 相互補完
             for band in recovered_signal:
-                # for i in range(0, len(recovered_signal[band]), self.height+N_gap):
-                #     ar_model = AutoReg(recovered_signal[band][i:(i+self.height)], lags=150)
-                #     ar_model = ar_model.fit()
-                #     pred = ar_model.forecast(N_gap)
-                #     recovered_signal[band][(i+self.height):i+self.height+N_gap] = pred
-                #     if i == stop_iter*(self.height+N_gap):
-                #         break
-                #     # print(i)
-                #     if(i%100==0):
-                #         time_present = time()
-                #         print(f'{band}_進捗: {i}/{len(recovered_signal[band])}, 経過時間: {time_present-time_start:.2f}秒')
-
-                ## 相互補完
                 forward_pred = []
                 for i in range(0, len(recovered_signal[band]), self.height+N_gap):
                     if stop_iter-1 == i//(self.height+N_gap):
                         break
                     ar_model = AutoReg(recovered_signal[band][i:(i+self.height)], lags=150)
                     ar_model = ar_model.fit()
-                    forward_pred.append(ar_model.forecast(N_gap))
+                    # forward_pred.append(ar_model.forecast(recovered_signal[band][(i+self.height)-N_gap:(i+self.height)]))
+                    forward_pred.append(ar_model.predict(start=721, end=1032))
                     recovered_signal[band][(i+self.height):i+self.height+N_gap] = forward_pred[(i//(self.height+N_gap))]
                     if(i%100==0):
                         time_present = time()
@@ -254,14 +243,14 @@ class VM_rolling:
                         break
                     ar_model = AutoReg(reversed_signal[i:i+self.height], lags=150)
                     ar_model = ar_model.fit()
-                    back_pred.append(ar_model.forecast(N_gap))
+                    back_pred.append(ar_model.predict(start=721, end=1032))
                     reversed_signal[i+self.height:i+self.height+N_gap] = back_pred[(i//(self.height+N_gap))-1]
                     if i == N_gap+stop_iter*(self.height+N_gap):
                         break
                     if(i%100==0):
                         time_present = time()
                         print(f'{band}_進捗: {i}/{len(recovered_signal[band])}, 経過時間: {time_present-time_start:.2f}秒')
-                recovered_signal[band][start_idx:end_idx] = (recovered_signal[band][start_idx:end_idx] + np.array(list(reversed(reversed_signal[start_idx:end_idx])))) / 2
+                recovered_signal[band][start_idx:end_idx] = (recovered_signal[band][start_idx:end_idx] + np.array(list(reversed(reversed_signal[start_idx:end_idx])))) / 2.0
 
             ## グラフを保存
             for band in recovered_signal:
@@ -273,23 +262,28 @@ class VM_rolling:
         print('相互補完処理完了')
         exit()
         
+        j = 0
         ## 復元音声変数の初期化
         recov_sound = np.zeros(len(recovered_signal[(0,0)]))
         for band in recovered_signal:
-            recov_sound += self.align(np.array(recovered_signal[band]), np.array(recov_sound))
+            print(band)
+            if j == 3:
+                print('aaa')
+                recov_sound += self.align(np.array(recovered_signal[band]), np.array(recov_sound))
             ## グラフを保存
-            plt.figure(figsize=[20, 5])
-            plt.plot(range(start_idx, end_idx), self.align(np.array(recovered_signal[band]), np.array(recov_sound))[start_idx:end_idx])
-            # plt.plot(range(len(recov_sound)), recov_sound)
-            plt.savefig('./result/align後_'+str(band))
-            plt.close()
-
+            # plt.figure(figsize=[20, 5])
+            # plt.plot(range(start_idx, end_idx), self.align(np.array(recovered_signal[band]), np.array(recov_sound))[start_idx:end_idx])
+            # # plt.plot(range(len(recov_sound)), recov_sound)
+            # plt.savefig('./result/align後_'+str(band))
+            # plt.close()
+            j += 1
             plt.figure(figsize=[20, 5])
             plt.plot(range(start_idx, end_idx), recov_sound[start_idx:end_idx])
             # plt.plot(range(len(recov_sound)), recov_sound)
             plt.savefig('./result/合成後_'+str(band))
             plt.close()
-        
+        print(f'max:{recov_sound.max()}')
+        print(f'min:{recov_sound.min()}')
         ## 復元音声のスペクトログラムを保存
         self.plot_spectrogram(recov_sound)
 
@@ -298,3 +292,4 @@ video_path = './data/KitKat-60Hz-RollingShutter-Mary_MIDI-input.avi'
 video = VM_rolling(video_path)
 x = video.sound_from_video(1, 1, 1)
 # x = video.sound_from_video(5, 1, 1)
+# video.save_audio('test.wav', x, 2200)
