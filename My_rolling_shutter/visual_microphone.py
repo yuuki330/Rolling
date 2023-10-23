@@ -111,7 +111,7 @@ class VM_rolling:
         Num_signal = (self.height+N_gap) * self.nframes
 
         ## 結果用のパラメータ
-        stop_iter = 3
+        stop_iter = 100
         start_idx = 0
         end_idx = (stop_iter-1)*(self.height+N_gap) # -1するのは初期フレームと差分を取るところを除外するため
 
@@ -208,68 +208,43 @@ class VM_rolling:
             plt.figure(figsize=[20, 5])
             plt.plot(range(start_idx, end_idx), recovered_signal[band][start_idx:end_idx])
             # plt.plot(range(len(recovered_signal[band])), recovered_signal[band])
-            plt.savefig('./result/相互補完前_'+str(band))
+            plt.savefig('./result/補完前_'+str(band))
             plt.close()
         
-        for j in range(1):
-            # 相互補完
+        for j in range(10):
+            ## 繰り返し一括補完
             for band in recovered_signal:
+                recovered_signal[band] = recovered_signal[band][start_idx:end_idx]
                 forward_pred = []
+                ar_model = AutoReg(recovered_signal[band], lags=720)
+                ar_model = ar_model.fit()
                 for i in range(0, len(recovered_signal[band]), self.height+N_gap):
-                    if stop_iter-1 == i//(self.height+N_gap):
+                    if stop_iter == i//(self.height+N_gap):
                         break
-                    ar_model = AutoReg(recovered_signal[band][i:(i+self.height)], lags=150)
-                    ar_model = ar_model.fit()
-                    # forward_pred.append(ar_model.forecast(recovered_signal[band][(i+self.height)-N_gap:(i+self.height)]))
-                    forward_pred.append(ar_model.predict(start=721, end=1032))
+                    forward_pred.append(ar_model.predict(start=(self.height+i)+1, end=i+self.height+N_gap))
                     recovered_signal[band][(i+self.height):i+self.height+N_gap] = forward_pred[(i//(self.height+N_gap))]
                     if(i%100==0):
                         time_present = time()
                         print(f'{band}_進捗: {i}/{len(recovered_signal[band])}, 経過時間: {time_present-time_start:.2f}秒')
-                plt.figure(figsize=[20, 5])
-                plt.plot(range(start_idx, end_idx), recovered_signal[band][start_idx:end_idx])
-                # plt.plot(range(len(recovered_signal[band])), recovered_signal[band])
-                plt.savefig(f'./result/前補完後_{j}'+str(band))
-                plt.close()
-
-                back_pred = []
-                reversed_signal = np.array(list(reversed(recovered_signal[band][start_idx:end_idx])))
-                plt.figure(figsize=[20, 5])
-                plt.plot(range(start_idx, end_idx), reversed_signal[start_idx:end_idx])
-                plt.savefig('./result/反転_'+str(band))
-                plt.close()
-                for i in range(N_gap, len(recovered_signal[band]), self.height+N_gap):
-                    if len(reversed_signal) < i+self.height+N_gap:
-                        break
-                    ar_model = AutoReg(reversed_signal[i:i+self.height], lags=150)
-                    ar_model = ar_model.fit()
-                    back_pred.append(ar_model.predict(start=721, end=1032))
-                    reversed_signal[i+self.height:i+self.height+N_gap] = back_pred[(i//(self.height+N_gap))-1]
-                    if i == N_gap+stop_iter*(self.height+N_gap):
-                        break
-                    if(i%100==0):
-                        time_present = time()
-                        print(f'{band}_進捗: {i}/{len(recovered_signal[band])}, 経過時間: {time_present-time_start:.2f}秒')
-                recovered_signal[band][start_idx:end_idx] = (recovered_signal[band][start_idx:end_idx] + np.array(list(reversed(reversed_signal[start_idx:end_idx])))) / 2.0
 
             ## グラフを保存
             for band in recovered_signal:
                 plt.figure(figsize=[20, 5])
                 plt.plot(range(start_idx, end_idx), recovered_signal[band][start_idx:end_idx])
                 # plt.plot(range(len(recovered_signal[band])), recovered_signal[band])
-                plt.savefig(f'./result/相互補完後_{j}'+str(band))
+                plt.savefig(f'./result/補完後_{j}'+str(band))
                 plt.close()
-        print('相互補完処理完了')
-        exit()
+        print('補完処理完了')
+    
         
         j = 0
         ## 復元音声変数の初期化
         recov_sound = np.zeros(len(recovered_signal[(0,0)]))
         for band in recovered_signal:
             print(band)
-            if j == 3:
-                print('aaa')
-                recov_sound += self.align(np.array(recovered_signal[band]), np.array(recov_sound))
+            # if j == 3:
+                # print('aaa')
+            recov_sound += self.align(np.array(recovered_signal[band]), np.array(recov_sound))
             ## グラフを保存
             # plt.figure(figsize=[20, 5])
             # plt.plot(range(start_idx, end_idx), self.align(np.array(recovered_signal[band]), np.array(recov_sound))[start_idx:end_idx])
@@ -290,6 +265,6 @@ class VM_rolling:
 
 video_path = './data/KitKat-60Hz-RollingShutter-Mary_MIDI-input.avi'
 video = VM_rolling(video_path)
-x = video.sound_from_video(1, 1, 1)
-# x = video.sound_from_video(5, 1, 1)
+# x = video.sound_from_video(1, 1, 1)
+x = video.sound_from_video(5, 1, 1)
 # video.save_audio('test.wav', x, 2200)
