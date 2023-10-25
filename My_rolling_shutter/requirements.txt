@@ -16,3 +16,5 @@ Pillow
 opencv-python
 pyrtools
 scipy
+statsmodels
+resampy

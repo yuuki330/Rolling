@@ -8,7 +8,7 @@ services:
     image: jupyterlab_image
     volumes:
       - .:/home/code
-    mem_limit: 10g
+    mem_limit: 100g
     cpus: 4.0
     tty: true
     deploy:
