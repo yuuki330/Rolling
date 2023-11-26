@@ -78,7 +78,7 @@ class VM_rolling:
         Num_signal = (self.height+N_gap) * self.nframes
 
         ## 結果用のパラメータ
-        stop_iter = 3
+        stop_iter = 20
         start_idx = 0
         end_idx = (stop_iter-1)*(self.height+N_gap) # -1するのは初期フレームと差分を取るところを除外するため
 
@@ -171,20 +171,23 @@ class VM_rolling:
             iter += 1
 
         ## グラフを表示
+        df = pd.DataFrame()
         for band in recovered_signal:
             plt.figure(figsize=[20, 5])
             plt.plot(range(start_idx, end_idx), recovered_signal[band][start_idx:end_idx])
             plt.savefig('./result/補間前_'+str(band))
             plt.close()
+            df[str(band)] = recovered_signal[band]
+        df.to_csv('補間前.csv')
         
-        jmax = 100
+        jmax = 10
         df = pd.DataFrame()
         for j in range(jmax):
             ## 繰り返し一括補完
             for band in recovered_signal:
                 recovered_signal[band] = recovered_signal[band][start_idx:end_idx]
                 forward_pred = []
-                ar_model = AutoReg(recovered_signal[band], lags=150)
+                ar_model = AutoReg(recovered_signal[band], lags=700)
                 ar_model = ar_model.fit()
                 for i in range(0, len(recovered_signal[band]), self.height+N_gap):
                     if stop_iter == i//(self.height+N_gap):
@@ -194,7 +197,11 @@ class VM_rolling:
 
                     ## predの最終値と次のフレームの最初の値を揃えるために、以降の値にpredの最終値と次のフレームの差分を足す
                     if len(recovered_signal[band]) > i+self.height+N_gap+1:
-                        recovered_signal[band][i+self.height+N_gap:] += recovered_signal[band][i+self.height+N_gap+1] - recovered_signal[band][i+self.height+N_gap]
+                        diff = recovered_signal[band][i+self.height+N_gap+1] - recovered_signal[band][i+self.height+N_gap]
+                        recovered_signal[band][i+self.height+N_gap:] += diff
+                        # print(recovered_signal[band][i+self.height+N_gap])
+                        # print(recovered_signal[band][i+self.height+N_gap+1])
+                        # print()
 
                     if(i%100==0):
                         time_present = time()
@@ -203,12 +210,13 @@ class VM_rolling:
                     df[str(band)] = recovered_signal[band]
 
             ## グラフとcsvを保存
-            for band in recovered_signal:
-                plt.figure(figsize=[20, 5])
-                plt.plot(range(start_idx, end_idx), recovered_signal[band][start_idx:end_idx])
-                # plt.plot(range(len(recovered_signal[band])), recovered_signal[band])
-                plt.savefig(f'./result/補間後_{j}'+str(band))
-                plt.close()
+            if((j+1)%10==0):
+                for band in recovered_signal:
+                    plt.figure(figsize=[20, 5])
+                    plt.plot(range(start_idx, end_idx), recovered_signal[band][start_idx:end_idx])
+                    # plt.plot(range(len(recovered_signal[band])), recovered_signal[band])
+                    plt.savefig(f'./result/補間後_{j+1}'+str(band))
+                    plt.close()
         print('補間処理完了')
         df.to_csv('補間後.csv')
     
@@ -252,5 +260,5 @@ class VM_rolling:
 video_path = './data/KitKat-60Hz-RollingShutter-Mary_MIDI-input.avi'
 video = VM_rolling(video_path)
 # x = video.sound_from_video(1, 1, 1)
-x = video.sound_from_video(5, 1, 1)
+x = video.sound_from_video(1, 1, 1)
 # video.save_audio('test.wav', x, 2000)
